@@ -6,47 +6,51 @@ xmlFile = r'Data/contract.xml'
 xmlFile = r'Data/contract_14.xml'
 
 
-
 class ParceFiles:
     def __init__(self):
         self.need_dict = {
-            'supplier': ['inn', 'organizationName']
+            'supplier': ['fullName', 'shortName', 'inn', 'kpp'],
+            'customer': ['fullName', 'shortName', 'inn', 'kpp']
         }
         self.need_str = ''
+        self.need_keys_arr = [key for key, value in self.need_dict.items()]
+        self.need_value_arr = []
 
     # Открываем файл и передаем словарь
     def open_file(self):
-        with open(xmlFile, encoding="utf8") as fobj:
-            xml = fobj.read()
+        with open(xmlFile, encoding="utf8") as file:
+            xml = file.read()
             # print(xml)
-            divttt = xmltodict.parse(xml)
+            xml_string = xmltodict.parse(xml)
             # print(json.dumps(xmltodict.parse(xml)))
-            print('ssss')
-            self.recursive(dict(divttt))
+            self.recursive(dict(xml_string))
 
     # Перебираем ключи и значения которые нужно найти
-    def need_keys(self):
-        for key, arr_value in self.need_dict:
+    # def need_keys(self):
+    #     for key, arr_value in self.need_dict:
 
-
-
-
-    def recursive(obj):
+    def recursive(self, obj):
         if isinstance(obj, dict):
             for key, value in obj.items():
-                # print(key)
                 if isinstance(value, dict):
-                    find_supl(value)
-                recursive(value)
+                    # if is dict
+                    self.find_need_key(value)
+                self.recursive(value)
         elif isinstance(obj, list):
             for item in obj:
-                recursive(item)
+                self.recursive(item)
         else:
+            # if final str
             print(obj)
 
-    def find_need_key(obj, find_str):
+    def find_need_key(self, obj):
         for key, value in obj.items():
-            if find_str in key.lower():
-                print(key)
+            for need_key in self.need_keys_arr:
+                if need_key in key.lower():
+                    self.need_value_arr = self.need_dict.get(need_key)
+
+                    print('ddd')
 
 
+tesdddd = ParceFiles()
+tesdddd.open_file()
