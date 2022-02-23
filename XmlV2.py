@@ -1,5 +1,10 @@
 from bs4 import BeautifulSoup as bs
 import pandas as pd
+import re
+from Base.Schemas.schema_xml import Schema
+import sqlite3
+
+schema_4_pars = Schema()
 
 PARS_PARAMS = {
     'customer': ['inn', 'kpp', 'fullName', 'shortName'],
@@ -10,6 +15,7 @@ PARS_PARAMS = {
     'printForm': ['url'],
     'currentContractStage': []
 }
+
 
 class XmlToBd:
     def __init__(self):
@@ -25,31 +31,35 @@ class XmlToBd:
             # Combine the lines in the list into a string
             content = "".join(content)
             bs_content = bs(content, "lxml")
-            self.parse_big_obj(bs_content)
+            self.parse_by_schema(bs_content)
 
-    def parse_big_obj(self, input_obj):
-        # Нужно сделать проверку на содержание текста в таге либо списое всех тагов
-        adding_info = {}
-        for key, value in PARS_PARAMS.items():
-            obj = input_obj.find(str(key).lower())
-            if value:
-                for key_2 in value:
-                    adding_info[f'{key[:3]}_{key_2}'] = obj.find(str(key_2).lower()).get_text()
-            else:
-                adding_info[f'{obj.name}'] = obj.get_text()
-                print(obj.name)
-        if self.result.empty:
-            self.result = pd.DataFrame([adding_info])
-        else:
-            self.result = self.result.append(adding_info, ignore_index=True)
-        print(adding_info)
-        # obj = input_obj.find()
-        # inn = obj.find('inn')
-        # kpp = obj.find('kpp')
-        # fullName = obj.find('fullName'.lower())
-        # shortName = obj.find('shortName'.lower())
-        # address = obj.find('address')
-        # print(inn.get_text().rstrip(), kpp, fullName, shortName, address)
+    def parse_by_schema(self, input_obj: bs):
+        result = {}
+        for key, value in schema_4_pars.schema_time.items():
+            for child_key in value:
+                big_obj = input_obj.find(child_key.lower())
+                if big_obj:
+                    if schema_4_pars.need_vars[key]:
+                        for need_key in schema_4_pars.need_vars[key]:
+                            need_key_text = big_obj.find(need_key.lower()).get_text()
+                            result[f'{key[:5]}_{need_key}'] = need_key_text
+                    else:
+                        result[f'{key}'] = big_obj.get_text()
+
+        result = pd.DataFrame([result])
+        self.result = pd.concat([self.result, result])
+
+    def add_to_db(self):
+        self.result.set_index('id', inplace=True)
+        # Create a SQL connection to our SQLite database
+        con = sqlite3.connect("data/contracts.sqlite")
+        self.result.to_sql("contracts", con, if_exists="replace")
+
+        con.close()
+
+
+
+
 
 
 
@@ -57,6 +67,8 @@ tttetet = XmlToBd()
 tttetet.find_father_element('Data/contract.xml')
 # tttetet.find_father_element('Data/contract_2.xml')
 tttetet.find_father_element('Data/contract_3.xml')
+
+tttetet.add_to_db()
 
 # <stages>
 #                     <guid>2C5A81746C2C4AFAB751AB2CAD04F5E9</guid>
